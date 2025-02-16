@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Wordler</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        /* TODO: Enable/disable for debugging */
+        /** {
+            border: 1px solid black;
+        }*/
+
+        .letter {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 50px;
+            height: 50px;
+            margin: 5px;
+            border: 2px solid #333;
+            font-size: 24px;
+            font-weight: bold;
+            text-transform: uppercase;
+            transition: background-color 2s ease, color 2s ease;
+        }
+        .letter.correct {
+            background-color: darkgreen;
+            color: white;
+        }
+        .letter.present {
+            background-color: darkorange;
+            color: white;
+        }
+        .letter.absent {
+            background-color: grey;
+            color: white;
+        }
+
+        .key {
+            width: 40px;
+            height: 50px;
+            margin: 5px;
+            border: 1px solid #bbb;
+            font-size: 18px;
+            font-weight: normal;
+            color: #000;
+            background-color: #ddd;
+            transition: background-color 2s ease, color 2s ease;
+        }
+        .key.correct {
+            background-color: darkgreen;
+            color: white;
+        }
+        .key.present {
+            background-color: darkorange;
+            color: white;
+        }
+        .key.absent {
+            background-color: grey;
+            color: white;
+        }
+        .wide-key {
+            width: 80px;
+        }
+
+        #url {
+            width: 500px;
+        }
+    </style>
+</head>
+<body class="d-flex flex-column min-vh-100 p-3">
+
+    <div class="container-fluid">
+        <h1 class="mb-4 text-center">Wordler</h1>
+
+        <div id="word-grid" class="container">
+            <script>
+                for (let i = 0; i < 6; i++) {
+                    document.write('<div class="justify-content-center row">');
+                    for (let j = 0; j < 5; j++) {
+                        document.write(`<div id="letter-${i}-${j}" class="letter"></div>`);
+                    }
+                    document.write('</div>');
+                }
+            </script>
+        </div>
+
+        <div id="keyboard" class="container mt-3">
+            <script>
+                const rows = [
+                    'QWERTYUIOP',
+                    'ASDFGHJKL',
+                    'ZXCVBNM'
+                ];
+
+                document.write('<div class="justify-content-center row">');
+                rows[0].split('').forEach(letter => {
+                    document.write(`<button class="btn btn-secondary key" onclick="keyPress('${letter}')">${letter}</button>`);
+                });
+                document.write('</div>');
+
+                document.write('<div class="justify-content-center row">');
+                rows[1].split('').forEach(letter => {
+                    document.write(`<button class="btn btn-secondary key" onclick="keyPress('${letter}')">${letter}</button>`);
+                });
+                document.write('</div>');
+
+                document.write('<div class="justify-content-center row">');
+                document.write(`<button class="btn btn-secondary key wide-key" onclick="keyPress('Enter')">Enter</button>`);
+                rows[2].split('').forEach(letter => {
+                    document.write(`<button class="btn btn-secondary key" onclick="keyPress('${letter}')">${letter}</button>`);
+                });
+                document.write(`<button class="btn btn-secondary key wide-key" onclick="keyPress('Backspace')">⌫</button>`);
+                document.write('</div>');
+            </script>
+        </div>
+
+        <div id="message" class="fs-4 mt-4 text-center"></div>
+
+        <br><br><br><br><br>
+
+    </div>
+
+    <div class="bg-light container-fluid fixed-bottom p-2 shadow-sm text-center">
+        <div class="gx-1 justify-content-center row">
+            <div class="align-items-center col-sm-auto d-flex justify-content-center">
+                <label for="enforceList" class="form-label me-3 ms-3">Enforce word list:</label>
+                <input id="enforceList" class="mb-2" type="checkbox">
+            </div>
+
+            <div class="align-items-center col-sm-auto d-flex justify-content-center">
+                <label for="wordLength" class="form-label me-3 ms-3">Word Length:</label>
+                <select id="wordLength" class="form-select w-auto">
+                    <script>
+                        const wordLengthSelect = document.getElementById('wordLength');
+                        for (let i = 4; i <= 12; i++) {
+                            const option = document.createElement('option');
+                            option.value = i;
+                            option.textContent = i;
+                            if (i === 5) option.selected = true;
+                            wordLengthSelect.appendChild(option);
+                        }
+                    </script>
+                </select>
+            </div>
+
+            <div class="align-items-center col-sm-auto d-flex justify-content-center">
+                <label for="url" class="form-label me-3 ms-3">URL:</label>
+                <input id="url" type="url" class="form-control" placeholder="https://www.asdf.com">
+            </div>
+
+            <div class="align-items-center col-sm-auto d-flex justify-content-center">
+                <button id="applyButton" class="btn btn-primary me-3 ms-3">Apply</button>
+                <button id="resetButton" class="btn btn-primary">Reset</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        let words = [];
+        let word = '';
+        let guesses = [];
+        let guess = '';
+        let done = false;
+
+        function reset() {
+            // Reset variables
+            chooseWord();
+            guesses = [];
+            guess = '';
+            done = false;
+
+            // Remove guesses and colours
+            const letterBoxes = document.querySelectorAll('.letter');
+            letterBoxes.forEach(box => {
+                box.classList.remove('correct', 'present', 'absent');
+                box.textContent = '';
+            });
+            const keys = document.querySelectorAll('.key');
+            keys.forEach(key => {
+                key.classList.remove('correct', 'present', 'absent');
+            });
+
+            // Reset elements
+            document.getElementById('message').textContent = '';
+            document.getElementById('enforceList').checked = false;
+            document.getElementById('wordLength').value = '5';
+            document.getElementById('url').value = '';
+        }
+
+        function apply() {
+            // TODO: Update page and load words based on word length
+            // TODO: If set, get URL then parse words and select a random one from that page
+        }
+
+        function handleGuess() {
+            // Deny repeats and unknown words
+            const enforceList = document.getElementById('enforceList').checked;
+            const messageElement = document.getElementById('message');
+            if (guesses.includes(guess)) {
+                messageElement.textContent = 'Already guessed that word!';
+                return;
+            } else if (enforceList && !words.includes(guess)) {
+                messageElement.textContent = 'Word not in word list!';
+                return;
+            } else {
+                messageElement.textContent = '';
+            }
+
+            // Set colours for letters and keyboard after guess
+            // TODO: This is broken for some cases, such as when a letter is already in the right location
+            const letterCount = [];
+            word.split('').forEach((letter, index) => {
+                letterCount[letter] = (letterCount[letter] || 0) + 1;
+            });
+            guess.split('').forEach((letter, index) => {
+                const letterElement = document.getElementById(`letter-${guesses.length}-${index}`);
+                const keyButton = Array.from(document.querySelectorAll('.key')).find(button => button.textContent === letter);
+
+                if (letter === word[index]) {
+                    letterElement.classList.add('correct');
+                    keyButton.classList.add('correct');
+                    letterCount[letter]--;
+                } else if (letterCount[letter] > 0) {
+                    letterElement.classList.add('present');
+                    keyButton.classList.add('present');
+                    letterCount[letter]--;
+                } else {
+                    letterElement.classList.add('absent');
+                    keyButton.classList.add('absent');
+                }
+            });
+
+            // Check for correct guess or not
+            if (guess.toUpperCase() === word.toUpperCase()) {
+                messageElement.textContent = 'You win!';
+                done = true;
+            } else {
+                guesses.push(guess);
+                guess = '';
+                if (guesses.length >= 6) {
+                    messageElement.innerHTML = `You lose, the word was <b>${word}</b>.`;
+                    done = true;
+                }
+            }
+        }
+
+        function keyPress(key) {
+            if (done) return;
+
+            const rows = document.querySelectorAll('#word-grid .row');
+            const letters = rows[guesses.length].querySelectorAll('.letter');
+
+            if (key === 'Backspace') {
+                if (guess.length > 0) {
+                    guess = guess.slice(0, -1);
+                    letters[guess.length].textContent = '';
+                }
+            } else if (key === 'Enter') {
+                if (guess.length === 5) {
+                    handleGuess();
+                }
+            } else if (/^[a-zA-Z]$/.test(key) && guess.length < 5) {
+                letters[guess.length].textContent = key.toUpperCase();
+                guess += key.toUpperCase();
+            }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            // Prevent default backspace event from some browser extensions
+            if (event.key === 'Backspace') {
+                event.preventDefault();
+            }
+
+            // Allow typing in URL input
+            if (document.activeElement === document.getElementById('url')) {
+                return;
+            }
+
+            keyPress(e.key);
+        });
+
+        document.getElementById('resetButton').addEventListener('click', reset);
+
+        document.getElementById('applyButton').addEventListener('click', apply);
+
+        async function loadWords() {
+            // To avoid CORS run 'python -m http.server 8000' and access in browser at http://localhost:8000
+            const response = await fetch('word-lists/words.txt');
+            const data = await response.text();
+            words.push(...data.split('\n')
+                .map(word => word.trim().toUpperCase())
+                .filter(word => word.length > 0));
+        }
+
+        function chooseWord() {
+            word = words[Math.floor(Math.random() * words.length)];
+        }
+
+        async function init() {
+            await loadWords();
+            chooseWord();
+        }
+
+        window.onload = init;
+    </script>
+
+</body>
+</html>
