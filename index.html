@@ -163,7 +163,7 @@
         async function restart() {
             // Reset variables
             const wordLength = document.getElementById('wordLength').value;
-            if (words[0].length !== wordLength) {
+            if (words[0].length !== parseInt(wordLength)) {
                 await loadWords();
             }
             chooseWord();
@@ -266,10 +266,10 @@
                     letters[guess.length].textContent = '';
                 }
             } else if (key === 'Enter') {
-                if (guess.length == wordLength) {
+                if (guess.length === parseInt(wordLength)) {
                     handleGuess();
                 }
-            } else if (/^[a-zA-Z]$/.test(key) && guess.length < wordLength) {
+            } else if (/^[a-zA-Z]$/.test(key) && guess.length < parseInt(wordLength)) {
                 letters[guess.length].textContent = key.toUpperCase();
                 guess += key.toUpperCase();
             }
@@ -301,7 +301,7 @@
                 const row = document.createElement('div');
                 row.classList.add('justify-content-center', 'row');
                 wordGrid.appendChild(row);
-                for (let j = 0; j < wordLength; j++) {
+                for (let j = 0; j < parseInt(wordLength); j++) {
                     const letterBox = document.createElement('div');
                     letterBox.id = `letter-${i}-${j}`;
                     letterBox.classList.add('letter');
@@ -312,8 +312,15 @@
 
         function parseWords(data, ignoreComments = true) {
             const wordLength = document.getElementById('wordLength').value;
-            words = data.split(/\s+/)
-                .filter(word => !ignoreComments || !word.startsWith("#"))
+            // Ignore comments
+            const lines = data.split('\n')
+                .filter(line => !(ignoreComments && line.trim().startsWith("#")));
+            words = lines.join(' ').split(/\s+/)
+                // Remove punctuation around words
+                .map(word => word.replace(/[.?!,;:"'()]/g, '').toUpperCase())
+                // Only keep correct length words
+                .filter(word => word.length === parseInt(wordLength))
+                // Remove words with hyphens, apostrophes, etc
                 .map(word => word.replace(/[^A-Za-z]/g, '').toUpperCase())
                 .filter(word => word.length === parseInt(wordLength));
         }
@@ -327,11 +334,11 @@
                 // Get remote word list via proxy
                 const response = await fetch(`${proxyUrl}/${url}`);
                 const data = await response.text();
-                console.log("Loaded URL: ", data);
+                console.log("Loaded URL text: ", data);
                 try {
                     // Assume HTML
                     const parser = new DOMParser();
-                    const doc = parser.parseFromString(htmlContent, 'text/html');
+                    const doc = parser.parseFromString(data, 'text/html');
                     const textContent = doc.body.innerText;
                     parseWords(textContent, false);
                 } catch (error) {
