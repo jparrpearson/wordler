@@ -68,8 +68,6 @@
 </head>
 <body class="d-flex flex-column min-vh-100 p-3">
 
-    <!-- TODO: Add tool tips -->
-
     <div class="container-fluid">
         <h1 class="mb-4 text-center">Wordler</h1>
 
@@ -116,12 +114,12 @@
     <div class="bg-light container-fluid fixed-bottom p-2 shadow-sm text-center">
         <div class="gx-1 justify-content-center row">
             <div class="align-items-center col-sm-auto d-flex justify-content-center">
-                <label for="enforceList" class="form-label me-3 ms-3">Enforce word list:</label>
+                <label for="enforceList" class="form-label me-3 ms-3" title="Only allow guesses of words in the word list">Enforce word list:</label>
                 <input id="enforceList" class="mb-2" type="checkbox">
             </div>
 
             <div class="align-items-center col-sm-auto d-flex justify-content-center">
-                <label for="wordLength" class="form-label me-3 ms-3">Word Length:</label>
+                <label for="wordLength" class="form-label me-3 ms-3" title="The length of words to include in the word list">Word Length:</label>
                 <select id="wordLength" class="form-select w-auto">
                     <script>
                         const wordLengthSelect = document.getElementById('wordLength');
@@ -137,13 +135,13 @@
             </div>
 
             <div class="align-items-center col-sm-auto d-flex justify-content-center">
-                <label for="url" class="form-label me-3 ms-3">URL:</label>
+                <label for="url" class="form-label me-3 ms-3" title="HTML or other text file to generate a word list from">URL:</label>
                 <input id="url" type="url" class="form-control" placeholder="https://www.asdf.com">
             </div>
 
             <div class="align-items-center col-sm-auto d-flex justify-content-center">
-                <button id="applyButton" class="btn btn-primary me-3 ms-3">Apply</button>
-                <button id="restartButton" class="btn btn-primary">Restart</button>
+                <button id="applyButton" class="btn btn-primary me-3 ms-3" title="Apply the changed settings">Apply</button>
+                <button id="restartButton" class="btn btn-primary" title="Restart the game with the current settings">Restart</button>
             </div>
         </div>
     </div>
@@ -278,10 +276,14 @@
         document.addEventListener('keydown', (e) => {
             // Prevent default backspace event from some browser extensions
             if (event.key === 'Backspace') {
+                // But still allow typing in URL input
+                if (document.activeElement === document.getElementById('url')) {
+                    return;
+                }
                 event.preventDefault();
             }
 
-            // Allow typing in URL input
+            // Do not process word letters if typing URL
             if (document.activeElement === document.getElementById('url')) {
                 return;
             }
