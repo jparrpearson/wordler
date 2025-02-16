@@ -68,6 +68,8 @@
 </head>
 <body class="d-flex flex-column min-vh-100 p-3">
 
+    <!-- TODO: Add tool tips -->
+
     <div class="container-fluid">
         <h1 class="mb-4 text-center">Wordler</h1>
 
@@ -149,6 +151,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
+        const proxyUrl = 'https://thingproxy.freeboard.io/fetch'
         const numberOfGuesses = 6;
         const wordLengthDefault = 5;
         let words = [];
@@ -307,22 +310,40 @@
             }
         }
 
-        async function loadWords() {
-            // To avoid CORS run 'python -m http.server 8000' and access in browser at http://localhost:8000
-            const url = document.getElementById('url').value;
+        function parseWords(data, ignoreComments = true) {
             const wordLength = document.getElementById('wordLength').value;
+            words = data.split(/\s+/)
+                .filter(word => !ignoreComments || !word.startsWith("#"))
+                .map(word => word.replace(/[^A-Za-z]/g, '').toUpperCase())
+                .filter(word => word.length === parseInt(wordLength));
+        }
+
+        async function loadWords() {
+            // When running locally, to avoid CORS run 'python -m http.server 8000' and access in browser at http://localhost:8000
+            console.time('Load words');
+            const url = document.getElementById('url').value;
             words = [];
             if (url !== '') {
-                // Get remote word list and parse from document
-                // TODO: Implement me
+                // Get remote word list via proxy
+                const response = await fetch(`${proxyUrl}/${url}`);
+                const data = await response.text();
+                console.log("Loaded URL: ", data);
+                try {
+                    // Assume HTML
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(htmlContent, 'text/html');
+                    const textContent = doc.body.innerText;
+                    parseWords(textContent, false);
+                } catch (error) {
+                    parseWords(data, false);
+                }
             } else {
                 // Get local word list
-                const response = await fetch(`word-lists/words${wordLength}.txt`);
+                const response = await fetch('word-lists/words10000.txt');
                 const data = await response.text();
-                words.push(...data.split('\n')
-                    .map(word => word.trim().toUpperCase())
-                    .filter(word => word.length > 0));
+                parseWords(data);
             }
+            console.timeEnd('Load words');
         }
 
         function chooseWord() {
