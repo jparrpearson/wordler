@@ -204,11 +204,11 @@
             }
 
             // Set colours for letters and keyboard after guess
-            // TODO: This is broken for some cases, such as when a letter is already in the right location
-            const letterCount = [];
-            word.split('').forEach((letter, index) => {
+            const letterCount = {};
+            word.split('').forEach(letter => {
                 letterCount[letter] = (letterCount[letter] || 0) + 1;
             });
+            // (1) Mark correct letters
             guess.split('').forEach((letter, index) => {
                 const letterBox = document.getElementById(`letter-${guesses.length}-${index}`);
                 const keyButton = Array.from(document.querySelectorAll('.key')).find(button => button.textContent === letter);
@@ -217,7 +217,16 @@
                     letterBox.classList.add('correct');
                     keyButton.classList.add('correct');
                     letterCount[letter]--;
-                } else if (letterCount[letter] > 0) {
+                }
+            });
+            // (2) Mark present letters (that were not correct), otherwise mark absent
+            guess.split('').forEach((letter, index) => {
+                if (word[index] === letter) return;
+
+                const letterBox = document.getElementById(`letter-${guesses.length}-${index}`);
+                const keyButton = Array.from(document.querySelectorAll('.key')).find(button => button.textContent === letter);
+
+                if (letterCount[letter] > 0) {
                     letterBox.classList.add('present');
                     keyButton.classList.add('present');
                     letterCount[letter]--;
