@@ -8,11 +8,6 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 
     <style>
-        /* TODO: Enable/disable for debugging */
-        /** {
-            border: 1px solid black;
-        }*/
-
         .letter {
             display: inline-flex;
             align-items: center;
@@ -76,16 +71,8 @@
     <div class="container-fluid">
         <h1 class="mb-4 text-center">Wordler</h1>
 
-        <div id="word-grid" class="container">
-            <script>
-                for (let i = 0; i < 6; i++) {
-                    document.write('<div class="justify-content-center row">');
-                    for (let j = 0; j < 5; j++) {
-                        document.write(`<div id="letter-${i}-${j}" class="letter"></div>`);
-                    }
-                    document.write('</div>');
-                }
-            </script>
+        <div id="wordGrid" class="container">
+            <!-- Generated at runtime -->
         </div>
 
         <div id="keyboard" class="container mt-3">
@@ -154,7 +141,7 @@
 
             <div class="align-items-center col-sm-auto d-flex justify-content-center">
                 <button id="applyButton" class="btn btn-primary me-3 ms-3">Apply</button>
-                <button id="resetButton" class="btn btn-primary">Reset</button>
+                <button id="restartButton" class="btn btn-primary">Restart</button>
             </div>
         </div>
     </div>
@@ -162,14 +149,20 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
+        const numberOfGuesses = 6;
+        const wordLengthDefault = 5;
         let words = [];
         let word = '';
         let guesses = [];
         let guess = '';
         let done = false;
 
-        function reset() {
+        async function restart() {
             // Reset variables
+            const wordLength = document.getElementById('wordLength').value;
+            if (words[0].length !== wordLength) {
+                await loadWords();
+            }
             chooseWord();
             guesses = [];
             guess = '';
@@ -187,15 +180,13 @@
             });
 
             // Reset elements
+            drawLetterBoxes();
             document.getElementById('message').textContent = '';
-            document.getElementById('enforceList').checked = false;
-            document.getElementById('wordLength').value = '5';
-            document.getElementById('url').value = '';
         }
 
-        function apply() {
-            // TODO: Update page and load words based on word length
-            // TODO: If set, get URL then parse words and select a random one from that page
+        async function apply() {
+            await loadWords();
+            restart();
         }
 
         function handleGuess() {
@@ -219,19 +210,19 @@
                 letterCount[letter] = (letterCount[letter] || 0) + 1;
             });
             guess.split('').forEach((letter, index) => {
-                const letterElement = document.getElementById(`letter-${guesses.length}-${index}`);
+                const letterBox = document.getElementById(`letter-${guesses.length}-${index}`);
                 const keyButton = Array.from(document.querySelectorAll('.key')).find(button => button.textContent === letter);
 
                 if (letter === word[index]) {
-                    letterElement.classList.add('correct');
+                    letterBox.classList.add('correct');
                     keyButton.classList.add('correct');
                     letterCount[letter]--;
                 } else if (letterCount[letter] > 0) {
-                    letterElement.classList.add('present');
+                    letterBox.classList.add('present');
                     keyButton.classList.add('present');
                     letterCount[letter]--;
                 } else {
-                    letterElement.classList.add('absent');
+                    letterBox.classList.add('absent');
                     keyButton.classList.add('absent');
                 }
             });
@@ -243,7 +234,7 @@
             } else {
                 guesses.push(guess);
                 guess = '';
-                if (guesses.length >= 6) {
+                if (guesses.length >= numberOfGuesses) {
                     messageElement.innerHTML = `You lose, the word was <b>${word}</b>.`;
                     done = true;
                 }
@@ -253,7 +244,8 @@
         function keyPress(key) {
             if (done) return;
 
-            const rows = document.querySelectorAll('#word-grid .row');
+            const wordLength = document.getElementById('wordLength').value;
+            const rows = document.querySelectorAll('#wordGrid .row');
             const letters = rows[guesses.length].querySelectorAll('.letter');
 
             if (key === 'Backspace') {
@@ -262,10 +254,10 @@
                     letters[guess.length].textContent = '';
                 }
             } else if (key === 'Enter') {
-                if (guess.length === 5) {
+                if (guess.length == wordLength) {
                     handleGuess();
                 }
-            } else if (/^[a-zA-Z]$/.test(key) && guess.length < 5) {
+            } else if (/^[a-zA-Z]$/.test(key) && guess.length < wordLength) {
                 letters[guess.length].textContent = key.toUpperCase();
                 guess += key.toUpperCase();
             }
@@ -285,17 +277,43 @@
             keyPress(e.key);
         });
 
-        document.getElementById('resetButton').addEventListener('click', reset);
+        document.getElementById('restartButton').addEventListener('click', restart);
 
         document.getElementById('applyButton').addEventListener('click', apply);
 
+        function drawLetterBoxes() {
+            const wordLength = document.getElementById('wordLength').value;
+            const wordGrid = document.getElementById('wordGrid');
+            wordGrid.innerHTML = '';
+            for (let i = 0; i < numberOfGuesses; i++) {
+                const row = document.createElement('div');
+                row.classList.add('justify-content-center', 'row');
+                wordGrid.appendChild(row);
+                for (let j = 0; j < wordLength; j++) {
+                    const letterBox = document.createElement('div');
+                    letterBox.id = `letter-${i}-${j}`;
+                    letterBox.classList.add('letter');
+                    row.appendChild(letterBox);
+                }
+            }
+        }
+
         async function loadWords() {
             // To avoid CORS run 'python -m http.server 8000' and access in browser at http://localhost:8000
-            const response = await fetch('word-lists/words.txt');
-            const data = await response.text();
-            words.push(...data.split('\n')
-                .map(word => word.trim().toUpperCase())
-                .filter(word => word.length > 0));
+            const url = document.getElementById('url').value;
+            const wordLength = document.getElementById('wordLength').value;
+            words = [];
+            if (url !== '') {
+                // Get remote word list and parse from document
+                // TODO: Implement me
+            } else {
+                // Get local word list
+                const response = await fetch(`word-lists/words${wordLength}.txt`);
+                const data = await response.text();
+                words.push(...data.split('\n')
+                    .map(word => word.trim().toUpperCase())
+                    .filter(word => word.length > 0));
+            }
         }
 
         function chooseWord() {
@@ -303,6 +321,7 @@
         }
 
         async function init() {
+            drawLetterBoxes();
             await loadWords();
             chooseWord();
         }
