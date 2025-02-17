@@ -107,6 +107,7 @@
 
         <div id="message" class="fs-4 mt-4 text-center"></div>
 
+        <!-- Ensure scrolling with footer shows all content -->
         <br><br><br><br><br>
 
     </div>
@@ -121,16 +122,7 @@
             <div class="align-items-center col-sm-auto d-flex justify-content-center">
                 <label for="wordLength" class="form-label me-3 ms-3" title="The length of words to include in the word list">Word Length:</label>
                 <select id="wordLength" class="form-select w-auto">
-                    <script>
-                        const wordLengthSelect = document.getElementById('wordLength');
-                        for (let i = 4; i <= 12; i++) {
-                            const option = document.createElement('option');
-                            option.value = i;
-                            option.textContent = i;
-                            if (i === 5) option.selected = true;
-                            wordLengthSelect.appendChild(option);
-                        }
-                    </script>
+                    <!-- Generated at runtime -->
                 </select>
             </div>
 
@@ -149,10 +141,13 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        // TODO: Parameterize some settings and cleanup global vars
         const proxyUrl = 'https://thingproxy.freeboard.io/fetch'
         const numberOfGuesses = 6;
+        const wordLengthMin = 4;
+        const wordLengthMax = 12;
         const wordLengthDefault = 5;
+
+        let wordLength = wordLengthDefault;
         let words = [];
         let word = '';
         let guesses = [];
@@ -161,8 +156,7 @@
 
         async function restart() {
             // Reset variables
-            const wordLength = document.getElementById('wordLength').value;
-            if (words[0].length !== parseInt(wordLength)) {
+            if (words[0].length !== wordLength) {
                 await loadWords();
             }
             chooseWord();
@@ -255,7 +249,6 @@
         function keyPress(key) {
             if (done) return;
 
-            const wordLength = document.getElementById('wordLength').value;
             const rows = document.querySelectorAll('#wordGrid .row');
             const letters = rows[guesses.length].querySelectorAll('.letter');
 
@@ -265,10 +258,10 @@
                     letters[guess.length].textContent = '';
                 }
             } else if (key === 'Enter') {
-                if (guess.length === parseInt(wordLength)) {
+                if (guess.length === wordLength) {
                     handleGuess();
                 }
-            } else if (/^[a-zA-Z]$/.test(key) && guess.length < parseInt(wordLength)) {
+            } else if (/^[a-zA-Z]$/.test(key) && guess.length < wordLength) {
                 letters[guess.length].textContent = key.toUpperCase();
                 guess += key.toUpperCase();
             }
@@ -276,16 +269,17 @@
 
         document.addEventListener('keydown', (e) => {
             // Prevent default backspace event from some browser extensions
+            const urlElement = document.getElementById('url');
             if (event.key === 'Backspace') {
-                // But still allow typing in URL input
-                if (document.activeElement === document.getElementById('url')) {
+                // But still allow backspace when typing URL
+                if (document.activeElement === urlElement) {
                     return;
                 }
                 event.preventDefault();
             }
 
             // Do not process word letters if typing URL
-            if (document.activeElement === document.getElementById('url')) {
+            if (document.activeElement === urlElement) {
                 return;
             }
 
@@ -296,15 +290,29 @@
 
         document.getElementById('applyButton').addEventListener('click', apply);
 
+        document.getElementById('wordLength').addEventListener('change', function() {
+            wordLength = parseInt(this.value);
+        });
+
+        function addLengthOptions() {
+            const wordLengthSelect = document.getElementById('wordLength');
+            for (let i = wordLengthMin; i <= wordLengthMax; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = i;
+                if (i === wordLengthDefault) option.selected = true;
+                wordLengthSelect.appendChild(option);
+            }
+        }
+
         function drawLetterBoxes() {
-            const wordLength = document.getElementById('wordLength').value;
             const wordGrid = document.getElementById('wordGrid');
             wordGrid.innerHTML = '';
             for (let i = 0; i < numberOfGuesses; i++) {
                 const row = document.createElement('div');
                 row.classList.add('justify-content-center', 'row');
                 wordGrid.appendChild(row);
-                for (let j = 0; j < parseInt(wordLength); j++) {
+                for (let j = 0; j < wordLength; j++) {
                     const letterBox = document.createElement('div');
                     letterBox.id = `letter-${i}-${j}`;
                     letterBox.classList.add('letter');
@@ -314,7 +322,6 @@
         }
 
         function parseWords(data, ignoreComments = true) {
-            const wordLength = document.getElementById('wordLength').value;
             // Ignore comments
             const lines = data.split('\n')
                 .filter(line => !(ignoreComments && line.trim().startsWith("#")));
@@ -322,10 +329,10 @@
                 // Remove punctuation around words
                 .map(word => word.replace(/[.?!,;:"'()]/g, '').toUpperCase())
                 // Only keep correct length words
-                .filter(word => word.length === parseInt(wordLength))
+                .filter(word => word.length === wordLength)
                 // Remove words with hyphens, apostrophes, etc
                 .map(word => word.replace(/[^A-Za-z]/g, '').toUpperCase())
-                .filter(word => word.length === parseInt(wordLength));
+                .filter(word => word.length === wordLength);
             // Remove duplicates
             words = [...new Set(words)];
         }
@@ -364,6 +371,7 @@
         }
 
         async function init() {
+            addLengthOptions();
             drawLetterBoxes();
             await loadWords();
             chooseWord();
