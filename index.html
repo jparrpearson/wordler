@@ -128,7 +128,7 @@
 
             <div class="align-items-center col-sm-auto d-flex justify-content-center">
                 <label for="url" class="form-label me-3 ms-3" title="HTML or other text file to generate a word list from">URL:</label>
-                <input id="url" type="url" class="form-control" placeholder="https://www.asdf.com">
+                <input id="url" type="url" class="form-control" placeholder="e.g. https://en.wikipedia.org/wiki/Hockey">
             </div>
 
             <div class="align-items-center col-sm-auto d-flex justify-content-center">
@@ -211,6 +211,7 @@
 
                 if (letter === word[index]) {
                     letterBox.classList.add('correct');
+                    keyButton.classList.remove('present', 'absent');
                     keyButton.classList.add('correct');
                     letterCount[letter]--;
                 }
@@ -224,11 +225,15 @@
 
                 if (letterCount[letter] > 0) {
                     letterBox.classList.add('present');
-                    keyButton.classList.add('present');
+                    if (!keyButton.classList.contains('correct')) {
+                        keyButton.classList.add('present');
+                    }
                     letterCount[letter]--;
                 } else {
                     letterBox.classList.add('absent');
-                    keyButton.classList.add('absent');
+                    if (!keyButton.classList.contains('correct') && !keyButton.classList.contains('present')) {
+                        keyButton.classList.add('absent');
+                    }
                 }
             });
 
