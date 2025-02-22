@@ -114,24 +114,31 @@
 
     <div class="bg-light container-fluid fixed-bottom p-2 shadow-sm text-center">
         <div class="gx-1 justify-content-center row">
-            <div class="align-items-center col-sm-auto d-flex justify-content-center">
+            <div class="align-items-center col-sm-auto d-flex justify-content-center my-2">
                 <label for="enforceList" class="form-label me-3 ms-3" title="Only allow guesses of words in the word list">Enforce word list:</label>
                 <input id="enforceList" class="mb-2" type="checkbox">
             </div>
 
-            <div class="align-items-center col-sm-auto d-flex justify-content-center">
+            <div class="align-items-center col-sm-auto d-flex justify-content-center my-2">
                 <label for="wordLength" class="form-label me-3 ms-3" title="The length of words to include in the word list">Word Length:</label>
                 <select id="wordLength" class="form-select w-auto">
                     <!-- Generated at runtime -->
                 </select>
             </div>
 
-            <div class="align-items-center col-sm-auto d-flex justify-content-center">
+            <div class="align-items-center col-sm-auto d-flex justify-content-center my-2">
+                <label for="numberOfGuesses" class="form-label me-3 ms-3" title="The number of guesses allowed">Number of Guesses:</label>
+                <select id="numberOfGuesses" class="form-select w-auto">
+                    <!-- Generated at runtime -->
+                </select>
+            </div>
+
+            <div class="align-items-center col-sm-auto d-flex justify-content-center my-2">
                 <label for="url" class="form-label me-3 ms-3" title="HTML or other text file to generate a word list from">URL:</label>
                 <input id="url" type="url" class="form-control" placeholder="e.g. https://en.wikipedia.org/wiki/Hockey">
             </div>
 
-            <div class="align-items-center col-sm-auto d-flex justify-content-center">
+            <div class="align-items-center col-sm-auto d-flex justify-content-center my-2">
                 <button id="applyButton" class="btn btn-primary me-3 ms-3" title="Apply the changed settings">Apply</button>
                 <button id="restartButton" class="btn btn-primary" title="Restart the game with the current settings">Restart</button>
             </div>
@@ -142,12 +149,17 @@
 
     <script>
         const proxyUrl = 'https://thingproxy.freeboard.io/fetch'
-        const numberOfGuesses = 6;
+        const enforceListDefault = true;
         const wordLengthMin = 4;
         const wordLengthMax = 12;
         const wordLengthDefault = 5;
+        const numberOfGuessesMin = 3;
+        const numberOfGuessesMax = 15;
+        const numberOfGuessesDefault = 6;
 
+        let enforceList = enforceListDefault;
         let wordLength = wordLengthDefault;
+        let numberOfGuesses = numberOfGuessesDefault;
         let words = [];
         let word = '';
         let guesses = [];
@@ -187,7 +199,6 @@
 
         function handleGuess() {
             // Deny repeats and unknown words
-            const enforceList = document.getElementById('enforceList').checked;
             const messageElement = document.getElementById('message');
             if (guesses.includes(guess)) {
                 messageElement.textContent = 'Already guessed that word!';
@@ -295,8 +306,16 @@
 
         document.getElementById('applyButton').addEventListener('click', apply);
 
+        document.getElementById('enforceList').addEventListener('change', function() {
+            enforceList = this.checked;
+        });
+
         document.getElementById('wordLength').addEventListener('change', function() {
             wordLength = parseInt(this.value);
+        });
+
+        document.getElementById('numberOfGuesses').addEventListener('change', function() {
+            numberOfGuesses = parseInt(this.value);
         });
 
         function addLengthOptions() {
@@ -307,6 +326,17 @@
                 option.textContent = i;
                 if (i === wordLengthDefault) option.selected = true;
                 wordLengthSelect.appendChild(option);
+            }
+        }
+
+        function addGuessOptions() {
+            const numberOfGuessesSelect = document.getElementById('numberOfGuesses');
+            for (let i = numberOfGuessesMin; i <= numberOfGuessesMax; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = i;
+                if (i === numberOfGuessesDefault) option.selected = true;
+                numberOfGuessesSelect.appendChild(option);
             }
         }
 
@@ -376,7 +406,9 @@
         }
 
         async function init() {
+            document.getElementById('enforceList').checked = enforceListDefault;
             addLengthOptions();
+            addGuessOptions();
             drawLetterBoxes();
             await loadWords();
             chooseWord();

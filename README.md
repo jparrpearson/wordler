@@ -2,7 +2,7 @@
 
 Guess the randomly chosen word based on clues for each guess.
 
-The length of the words to guess, and the source of the word list (local file or remote URL), are both configurable.  Whether a text file or HTML page, the content is split on spaces, tabs, or newlines and words without punctionation marks are parsed and the words of the desired length are chosen as the word list to guess from.
+The length of the words to guess, number of guesses, and the source of the word list (including remote URL), are all configurable.  Whether the word list comes from a text file or HTML page, the content is split on spaces, tabs, or newlines and words without punctuation marks are parsed and the words of the desired length are chosen as the word list to guess from.
 
 You can play the game directly from [here](https://jparrpearson.github.io/wordler/).
 
