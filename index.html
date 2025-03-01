@@ -148,13 +148,15 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        const proxyUrl = 'https://thingproxy.freeboard.io/fetch' // Limit 10 requests/s and 100k characters for request or response
+        // Note that some proxies require an API key to work outside of localhost (also consider cors.sh and cloudflare-cors-anywhere)
+        //const proxyUrl = 'https://thingproxy.freeboard.io/fetch/' // Limit 10 requests/s and 100k characters for request or response
+        const proxyUrl = 'https://api.allorigins.win/raw?url='
         const enforceListDefault = true;
         const wordLengthMin = 4;
-        const wordLengthMax = 12;
+        const wordLengthMax = 8;
         const wordLengthDefault = 5;
         const numberOfGuessesMin = 3;
-        const numberOfGuessesMax = 15;
+        const numberOfGuessesMax = 10;
         const numberOfGuessesDefault = 6;
 
         let enforceList = enforceListDefault;
@@ -381,7 +383,7 @@
             if (url !== '') {
                 // Get remote word list via proxy
                 //console.log("Loading URL via proxy: ", url);
-                const response = await fetch(`${proxyUrl}/${url}`);
+                const response = await fetch(`${proxyUrl}${url}`);
                 const data = await response.text();
                 //console.log("Loaded URL text: ", data);
                 try {
@@ -395,7 +397,7 @@
                 }
             } else {
                 // Get local word list
-                const response = await fetch('common-words.txt');
+                const response = await fetch('default-wordlist.txt');
                 const data = await response.text();
                 parseWords(data);
             }
@@ -418,13 +420,13 @@
 
         // Test different word lists (verify counts and words array)
         async function test() {
-            // common-words.txt (5-length words) = 11846
+            // default-wordlist.txt (5-length words) = 11846
             const list = [
                 'https://raw.githubusercontent.com/powerlanguage/word-lists/refs/heads/master/1000-most-common-words.txt', // 236
                 'https://raw.githubusercontent.com/sapbmw/The-Oxford-3000/refs/heads/master/The_Oxford_3000.txt', // 560
                 'https://raw.githubusercontent.com/first20hours/google-10000-english/refs/heads/master/google-10000-english.txt', // 1382
                 'https://www.lipsum.com/', // ~108
-                'https://en.wikipedia.org/wiki/Hockey', // ~241
+                'https://en.wikipedia.org/wiki/Hockey', // ~242
                 'https://asdf.com/aboutasdf.html' // ~3
             ]
             for (const url of list) {
