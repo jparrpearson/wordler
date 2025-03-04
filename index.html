@@ -149,8 +149,14 @@
 
     <script>
         // Note that some proxies require an API key to work outside of localhost (also consider cors.sh and cloudflare-cors-anywhere)
-        //const proxyUrl = 'https://thingproxy.freeboard.io/fetch/' // Limit 10 requests/s and 100k characters for request or response
-        const proxyUrl = 'https://api.allorigins.win/raw?url='
+        //const proxyUrl = 'https://thingproxy.freeboard.io/fetch/'; // Limit 10 requests/s and 100k characters for request or response
+        //const proxyUrl = 'https://api.allorigins.win/raw?url=';
+        //const proxyUrl = 'https://crossorigin.me/';
+        //const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
+        //const proxyUrl = 'https://api.thebugging.com/cors-proxy?url='; // Limit 10 requests/s
+        //const proxyUrl = 'https://api.codetabs.com/v1/proxy/?quest='; // Limit 5 requests/s and 5MB
+        const proxyUrl = 'https://api.cors.lol/?url=';
+
         const enforceListDefault = true;
         const wordLengthMin = 4;
         const wordLengthMax = 8;
@@ -382,8 +388,9 @@
             words = [];
             if (url !== '') {
                 // Get remote word list via proxy
-                //console.log("Loading URL via proxy: ", url);
-                const response = await fetch(`${proxyUrl}${url}`);
+                const proxiedUrl = `${proxyUrl}${encodeURIComponent(url)}`;
+                console.log("Loading URL via proxy: ", proxiedUrl);
+                const response = await fetch(proxiedUrl);
                 const data = await response.text();
                 //console.log("Loaded URL text: ", data);
                 try {
