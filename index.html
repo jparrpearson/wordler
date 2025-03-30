@@ -8,15 +8,14 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 
     <style>
-        /* TODO: Add dark mode */
         .letter {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 50px;
-            height: 50px;
+            width: 60px;
+            height: 60px;
             margin: 5px;
-            border: 2px solid #333;
+            border: 2px solid lightgrey;
             font-size: 24px;
             font-weight: bold;
             text-transform: uppercase;
@@ -31,19 +30,19 @@
             color: white;
         }
         .letter.absent {
-            background-color: grey;
+            background-color: dimgrey;
             color: white;
         }
 
         .key {
-            width: 40px;
-            height: 50px;
-            margin: 5px;
-            border: 1px solid #bbb;
+            width: 50px;
+            height: 60px;
+            margin: 3px;
+            border: 1px solid grey;
             font-size: 18px;
             font-weight: normal;
             color: #000;
-            background-color: #ddd;
+            background-color: lightgrey;
             transition: background-color 2s ease, color 2s ease;
         }
         .key.correct {
@@ -55,7 +54,7 @@
             color: white;
         }
         .key.absent {
-            background-color: grey;
+            background-color: dimgrey;
             color: white;
         }
         .wide-key {
@@ -149,16 +148,17 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        // Note that some proxies require an API key to work outside of localhost (also consider cors.sh and cloudflare-cors-anywhere)
-        //const proxyUrl = 'https://thingproxy.freeboard.io/fetch/'; // Limit 10 requests/s and 100k characters for request or response
-        //const proxyUrl = 'https://api.allorigins.win/raw?url=';
-        //const proxyUrl = 'https://crossorigin.me/';
-        //const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
-        //const proxyUrl = 'https://api.thebugging.com/cors-proxy?url='; // Limit 10 requests/s
-        //const proxyUrl = 'https://api.codetabs.com/v1/proxy/?quest='; // Limit 5 requests/s and 5MB
-        const proxyUrl = 'https://api.cors.lol/?url=';
+        const proxyUrls = [
+            //'http://localhost:5000/proxy/',
+            'https://api.codetabs.com/v1/proxy/?quest=',
+            'https://api.cors.lol/?url=',
+            'https://api.thebugging.com/cors-proxy?url=',
+            'https://api.allorigins.win/raw?url=',
+            'https://crossorigin.me/',
+            'https://cors-anywhere.herokuapp.com/',
+            'https://thingproxy.freeboard.io/fetch/'
+        ];
 
-        // TODO: Add option to require use of known hints
         const enforceListDefault = true;
         const ignoreNounsDefault = false;
         const wordLengthMin = 4;
@@ -368,9 +368,9 @@
             }
         }
 
-        function parseWords(data, ignoreComments = true) {
+        function parseWords(text, ignoreComments = true) {
             // Ignore comments
-            const lines = data.split('\n')
+            const lines = text.split('\n')
                 .filter(line => !(ignoreComments && line.trim().startsWith("#")));
             words = lines.join(' ')
                 // Remove punctuation marks
@@ -427,39 +427,51 @@
             }
         }
 
+        async function fetchWithProxy(url) {
+            for (const proxyUrl of proxyUrls) {
+                try {
+                    const proxiedUrl = `${proxyUrl}${encodeURIComponent(url)}`;
+                    console.log("Loading URL via proxy: ", proxiedUrl);
+                    const response = await fetch(proxiedUrl);
+                    if (!response.ok) {
+                        console.log(`Proxy ${proxyUrl} failed with status: ${response.status}`);
+                        continue;
+                    }
+                    const text = await response.text();
+                    return text;
+                } catch (error) {
+                    console.log(`Proxy ${proxyUrl} failed`, error);
+                }
+            }
+        }
+
         async function loadWords() {
-            // When running locally, to avoid CORS run 'python -m http.server 8000' and access in browser at http://localhost:8000
             console.time('Load time');
-            // TODO: Make ignoreNouns a configurable property
             ignoreNouns = ignoreNounsDefault;
             const url = document.getElementById('url').value;
             words = [];
             if (url !== '') {
                 // Get remote word list via proxy
-                const proxiedUrl = `${proxyUrl}${encodeURIComponent(url)}`;
-                console.log("Loading URL via proxy: ", proxiedUrl);
-                const response = await fetch(proxiedUrl);
-                const data = await response.text();
-                //console.log("Loaded URL text: ", data);
+                const text = await fetchWithProxy(url);
+                //console.log("Loaded URL text: ", text);
                 try {
                     // Assume HTML
                     const parser = new DOMParser();
-                    const doc = parser.parseFromString(data, 'text/html');
+                    const doc = parser.parseFromString(text, 'text/html');
                     let textContent = doc.body.innerText;
-                    // TODO: Add Wikipedia input (get page based off input rather than requiring URL)
                     if (url.startsWith('https://') && url.includes('.wikipedia.org/')) {
                         textContent = extractWikipediaContent(doc);
                         ignoreNouns = true;
                     }
                     parseWords(textContent, false);
                 } catch (error) {
-                    parseWords(data, false);
+                    parseWords(text, false);
                 }
             } else {
                 // Get local word list
                 const response = await fetch('default-wordlist.txt');
-                const data = await response.text();
-                parseWords(data);
+                const text = await response.text();
+                parseWords(text);
             }
 
             // Add word count to enforce word list label
@@ -503,6 +515,8 @@
         }
 
         window.onload = init;
+
+        // To run locally (and be able to load files): 'python -m http.server 8000', then access in browser at http://localhost:8000
     </script>
 
 </body>
