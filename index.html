@@ -150,13 +150,12 @@
     <script>
         const proxyUrls = [
             //'http://localhost:5000/proxy/',
-            'https://api.codetabs.com/v1/proxy/?quest=',
-            'https://api.cors.lol/?url=',
-            'https://api.thebugging.com/cors-proxy?url=',
             'https://api.allorigins.win/raw?url=',
+            'https://test.cors.workers.dev/',
+            'https://api.cors.lol/?url=',
+            'https://thingproxy.freeboard.io/fetch/',
             'https://crossorigin.me/',
-            'https://cors-anywhere.herokuapp.com/',
-            'https://thingproxy.freeboard.io/fetch/'
+            'https://api.codetabs.com/v1/proxy/?quest=',
         ];
 
         const enforceListDefault = true;
@@ -419,7 +418,6 @@
                 clonedContent.querySelectorAll('script, style').forEach((element) => {
                     element.remove();
                 });
-                //console.log("Extracted Wikipedia text: ", clonedContent.innerText);
 
                 return clonedContent.innerText;
             } catch (error) {
@@ -427,20 +425,21 @@
             }
         }
 
-        async function fetchWithProxy(url) {
-            for (const proxyUrl of proxyUrls) {
+        async function fetchWithProxy(url, proxyOverride = null) {
+            let proxyList = proxyOverride ? [proxyOverride] : proxyUrls;
+            for (const proxyUrl of proxyList) {
                 try {
                     const proxiedUrl = `${proxyUrl}${encodeURIComponent(url)}`;
-                    console.log("Loading URL via proxy: ", proxiedUrl);
+                    console.log("Fetching proxied URL: ", proxiedUrl);
                     const response = await fetch(proxiedUrl);
                     if (!response.ok) {
-                        console.log(`Proxy ${proxyUrl} failed with status: ${response.status}`);
+                        console.log(`Proxy ${proxyUrl} failed`);
                         continue;
                     }
                     const text = await response.text();
                     return text;
                 } catch (error) {
-                    console.log(`Proxy ${proxyUrl} failed`, error);
+                    console.log(`Proxy ${proxyUrl} failed`);
                 }
             }
         }
@@ -453,7 +452,6 @@
             if (url !== '') {
                 // Get remote word list via proxy
                 const text = await fetchWithProxy(url);
-                //console.log("Loaded URL text: ", text);
                 try {
                     // Assume HTML
                     const parser = new DOMParser();
@@ -496,22 +494,37 @@
             chooseWord();
         }
 
-        // Test different word lists (verify counts and words array)
-        async function test() {
-            // default-wordlist.txt (5-length words) = 11846
+        async function testLoadWords() {
             const list = [
                 'https://raw.githubusercontent.com/powerlanguage/word-lists/refs/heads/master/1000-most-common-words.txt', // 236
                 'https://raw.githubusercontent.com/sapbmw/The-Oxford-3000/refs/heads/master/The_Oxford_3000.txt', // 560
                 'https://raw.githubusercontent.com/first20hours/google-10000-english/refs/heads/master/google-10000-english.txt', // 1382
                 'https://www.lipsum.com/', // ~108
-                'https://en.wikipedia.org/wiki/Hockey', // ~242
-                'https://asdf.com/aboutasdf.html' // ~3
+                'https://en.wikipedia.org/wiki/Hockey', // ~130 (242 with nouns)
+                'https://asdf.com/aboutasdf.html', // ~3
+                '' // 11846 (default word list)
             ]
             for (const url of list) {
                 document.getElementById('url').value = url;
                 console.log(url);
                 await loadWords();
+                await sleep(1000);
             }
+        }
+
+        async function testFetchWithProxy() {
+            const url = 'https://asdf.com/whatisasdf.html';
+            for (const proxyUrl of proxyUrls) {
+                console.time('Proxy time');
+                await fetchWithProxy(url, proxyUrl);
+                console.timeEnd('Proxy time');
+            }
+        }
+
+        function sleep(milliseconds) {
+            return new Promise(resolve => {
+                setTimeout(resolve, milliseconds);
+            });
         }
 
         window.onload = init;
