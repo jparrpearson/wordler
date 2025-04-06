@@ -251,32 +251,17 @@
         });
 
         saveButton.addEventListener('click', function() {
-            save();
+            ignoreNouns = ignoreNounsCheckbox.checked;
+            enforceList = enforceListCheckbox.checked;
+            enforceHints = enforceHintsCheckbox.checked;
+            wordLength = parseInt(wordLengthSelect.value);
+            numberOfGuesses = parseInt(numberOfGuessesSelect.value);
             settingsDialog.close();
+            save();
         });
 
         cancelButton.addEventListener('click', function() {
             settingsDialog.close();
-        });
-
-        ignoreNounsCheckbox.addEventListener('change', function() {
-            ignoreNouns = this.checked;
-        });
-
-        enforceListCheckbox.addEventListener('change', function() {
-            enforceList = this.checked;
-        });
-
-        enforceHintsCheckbox.addEventListener('change', function() {
-            enforceHints = this.checked;
-        });
-
-        wordLengthSelect.addEventListener('change', function() {
-            wordLength = parseInt(this.value);
-        });
-
-        numberOfGuessesSelect.addEventListener('change', function() {
-            numberOfGuesses = parseInt(this.value);
         });
 
         function keyPress(key) {
