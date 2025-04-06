@@ -1,7 +1,2 @@
-- [ ] Add require use of known hints setting
-- [ ] Make ignore nouns a configurable setting
 - [ ] Add dark mode setting
-- [ ] Move settings to a dialog, toggled through a cog button
-- [ ] Provide a notification when word list loading completes
-- [ ] Make notifications disappear after some time
 - [ ] Add a Wikipedia topic input (get first matching Wikipeida page for a given string rather than supplying URL)
