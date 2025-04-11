@@ -1,2 +1,3 @@
 - [ ] Add dark mode setting
-- [ ] Add a Wikipedia topic input (get first matching Wikipeida page for a given string rather than supplying URL)
+- [ ] Add a timeout to proxy calls (e.g. 3s)
+- [ ] Add a Wikipedia topic input (get first matching Wikipedia page for a given string rather than supplying URL)
