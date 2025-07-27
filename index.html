@@ -76,12 +76,7 @@
         }
 
         #message {
-            opacity: 1;
             transition: opacity 1s ease-in-out;
-        }
-
-        #message.fade-out {
-            opacity: 0;
         }
 
         @media (max-width: 450px) {
@@ -193,7 +188,7 @@
 
             <div class="mb-3 d-flex align-items-center">
                 <label for="url" class="form-label me-2" title="HTML or other text file to generate a word list from (will use default word list if not set)">URL:</label>
-                  <input id="url" type="url" class="form-control" placeholder="e.g. https://en.wikipedia.org/wiki/Hockey">
+                <input id="url" type="url" class="form-control" placeholder="e.g. https://en.wikipedia.org/wiki/Hockey">
               </div>
 
             <div class="mb-3 d-flex align-items-center">
@@ -216,8 +211,8 @@
             </div>
 
             <div class="text-left">
-                <button id="saveButton" class="btn btn-primary me-2">Save</button>
-                <button id="cancelButton" class="btn btn-secondary">Cancel</button>
+                <button id="saveSettingsButton" class="btn btn-primary me-2">Save</button>
+                <button id="cancelSettingsButton" class="btn btn-secondary">Cancel</button>
             </div>
         </dialog>
     </div>
@@ -234,6 +229,9 @@
             'https://crossorigin.me/',
             'https://api.codetabs.com/v1/proxy/?quest=',
         ];
+
+        const DEFAULT_MESSAGE_DURATION = 5000;
+        const DEFAULT_FETCH_TIMEOUT = 5000;
 
         const enforceListDefault = true;
         const enforceHintsDefault = false;
@@ -269,8 +267,8 @@
         const numberOfGuessesSelect = document.getElementById('numberOfGuesses');
         const enforceListCheckbox = document.getElementById('enforceList');
         const enforceHintsCheckbox = document.getElementById('enforceHints');
-        const saveButton = document.getElementById('saveButton');
-        const cancelButton = document.getElementById('cancelButton');
+        const saveSettingsButton = document.getElementById('saveSettingsButton');
+        const cancelSettingsButton = document.getElementById('cancelSettingsButton');
 
         // Event listeners
         document.addEventListener('keydown', (e) => {
@@ -301,25 +299,31 @@
             settingsDialog.showModal();
         });
 
-        saveButton.addEventListener('click', function() {
+        enforceListCheckbox.addEventListener('change', function() {
+            enforceList = this.checked;
+        });
+
+        enforceHintsCheckbox.addEventListener('change', function() {
+            enforceHints = this.checked;
+        });
+
+        saveSettingsButton.addEventListener('click', function() {
+            // Warn user if they started a game as this will reset it
+            if (guesses.length > 0 && !done) {
+                let confirm = window.confirm("Saving these changes will reset the current game. Continue?");
+                if (!confirm) return;
+            }
+            // Note gameplay settings that do not require a reset are updated elsewhere
             ignoreNouns = ignoreNounsCheckbox.checked;
             wordLength = parseInt(wordLengthSelect.value);
             numberOfGuesses = parseInt(numberOfGuessesSelect.value);
             settingsDialog.close();
-            save();
+            applySettings();
         });
 
-        cancelButton.addEventListener('click', function() {
+        cancelSettingsButton.addEventListener('click', function() {
             settingsDialog.close();
         });
-
-        enforceListCheckbox.addEventListener('change', function() {
-             enforceList = this.checked;
-         });
-
-         enforceHintsCheckbox.addEventListener('change', function() {
-             enforceHints = this.checked;
-         });
 
         function keyPress(key) {
             if (done) return;
@@ -372,22 +376,19 @@
             }
         }
 
-        async function save() {
+        async function applySettings() {
             await loadWords();
             restart();
         }
 
-        function clearMessage(duration = 3000, fadeDuration = 1000) {
-            messageElement.classList.remove('fade-out');
-            messageElement.style.opacity = '1';
+        function clearMessage(duration = DEFAULT_MESSAGE_DURATION, fadeDuration = 1000) {
             setTimeout(() => {
-                messageElement.classList.add('fade-out');
+                messageElement.style.opacity = '0';
                 setTimeout(() => {
                     messageElement.textContent = '';
-                    messageElement.classList.remove('fade-out');
                     messageElement.style.opacity = '1';
                 }, fadeDuration);
-            }, duration);
+            }, duration - fadeDuration);
         }
 
         function enforceHintsUsage(guess) {
@@ -592,7 +593,7 @@
                 try {
                     const proxiedUrl = `${proxyUrl}${encodeURIComponent(url)}`;
                     console.log("Fetching proxied URL: ", proxiedUrl);
-                    const response = await fetch(proxiedUrl);
+                    const response = await fetch(proxiedUrl, { signal: AbortSignal.timeout(DEFAULT_FETCH_TIMEOUT) });
                     if (!response.ok) {
                         console.log(`Proxy ${proxyUrl} failed`);
                         continue;
@@ -626,7 +627,7 @@
                 }
             } else {
                 // Get local word list
-                const response = await fetch('default-wordlist.txt');
+                const response = await fetch('default-wordlist.txt', { signal: AbortSignal.timeout(DEFAULT_FETCH_TIMEOUT) });
                 const text = await response.text();
                 parseWords(text);
             }
@@ -635,11 +636,11 @@
             titleHeader.title = titleHeader.title.replace(/ \(\d+ words\)$/, '');
             titleHeader.title = `${words.length} words`;
 
-            messageElement.textContent = `Completed loading ${words.length} ${wordLength}-letter words`;
+            messageElement.innerHTML = `Completed loading ${words.length} ${wordLength}-letter words`;
             if (url !== '') {
-                messageElement.textContent += ` from ${url}`;
+                messageElement.innerHTML += ` from:<br>${url}`;
             }
-            clearMessage(5000, 1000);
+            clearMessage();
 
             console.log(`Loaded ${words.length} words`);
             console.timeEnd('Load time');
