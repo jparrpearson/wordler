@@ -253,6 +253,7 @@
         let guesses = [];
         let guess = '';
         let done = false;
+        let messageTimeout;
 
         // DOM references
         const titleHeader = document.getElementById('title');
@@ -271,7 +272,7 @@
         const cancelSettingsButton = document.getElementById('cancelSettingsButton');
 
         // Event listeners
-        document.addEventListener('keydown', (e) => {
+        document.addEventListener('keydown', (event) => {
             // Prevent default backspace event from some browser extensions
             if (event.key === 'Backspace') {
                 // But still allow backspace when typing URL
@@ -286,7 +287,30 @@
                 return;
             }
 
-            keyPress(e.key);
+            // Handle shortcuts (CTRL + ?)
+            if (event.ctrlKey) {
+                switch (event.key) {
+                    // Restart game
+                    case 'r':
+                        event.preventDefault();
+                        restart();
+                        break;
+                    // Show settings dialog
+                    case 's':
+                        event.preventDefault();
+                        settingsDialog.showModal();
+                        break;
+                    // Show hint
+                    case 'h':
+                        event.preventDefault();
+                        //showNextHint();
+                        showRandomHint();
+                        break;
+                }
+                return;
+            }
+
+            keyPress(event.key);
         });
 
         restartButton.addEventListener('click', function() {
@@ -331,20 +355,31 @@
             const rows = document.querySelectorAll('#wordGrid .row');
             const letters = rows[guesses.length].querySelectorAll('.letter');
 
-            if (key === 'Escape') {
-                settingsDialog.close();
-            } else if (key === 'Backspace') {
-                if (guess.length > 0) {
-                    guess = guess.slice(0, -1);
-                    letters[guess.length].textContent = '';
-                }
-            } else if (key === 'Enter') {
-                if (guess.length === wordLength) {
-                    handleGuess();
-                }
-            } else if (/^[a-zA-Z]$/.test(key) && guess.length < wordLength) {
-                letters[guess.length].textContent = key.toUpperCase();
-                guess += key.toUpperCase();
+            switch (key) {
+                // Close settings dialog
+                case 'Escape':
+                    settingsDialog.close();
+                    break;
+                // Undo letter
+                case 'Backspace':
+                    if (guess.length > 0) {
+                        guess = guess.slice(0, -1);
+                        letters[guess.length].textContent = '';
+                    }
+                    break;
+                // Enter guess
+                case 'Enter':
+                    if (guess.length === wordLength) {
+                        handleGuess();
+                    }
+                    break;
+                default:
+                    // Enter letter
+                    if (/^[a-zA-Z]$/.test(key) && guess.length < wordLength) {
+                        letters[guess.length].textContent = key.toUpperCase();
+                        guess += key.toUpperCase();
+                    }
+                    break;
             }
         }
 
@@ -381,14 +416,38 @@
             restart();
         }
 
-        function clearMessage(duration = DEFAULT_MESSAGE_DURATION, fadeDuration = 1000) {
-            setTimeout(() => {
+        let hintIndex = 0;
+        // Loop through letters from left to right as the hints
+        function showNextHint() {
+            hintIndex = (hintIndex % word.length);
+            hint = word[hintIndex];
+            messageElement.textContent = hint;
+            clearMessage(2000);
+            hintIndex++;
+        }
+
+        // Return random unguessed letter
+        function showRandomHint() {
+            const wordLetters = new Set(word.split(''));
+            const guessedLetters = new Set(guesses.join('').split(''));
+            const unguessedLetters = [...wordLetters].filter(letter => !guessedLetters.has(letter));
+            if (unguessedLetters.length > 0) {
+                const randomIndex = Math.floor(Math.random() * unguessedLetters.length);
+                const hint = unguessedLetters[randomIndex];
+                messageElement.textContent = hint;
+                clearMessage(2000);
+            }
+        }
+
+        function clearMessage(duration = DEFAULT_MESSAGE_DURATION, fadeDuration = 500) {
+            clearTimeout(messageTimeout);
+            messageTimeout = setTimeout(() => {
                 messageElement.style.opacity = '0';
                 setTimeout(() => {
                     messageElement.textContent = '';
                     messageElement.style.opacity = '1';
                 }, fadeDuration);
-            }, duration - fadeDuration);
+            }, duration);
         }
 
         function enforceHintsUsage(guess) {
